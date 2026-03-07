@@ -36,6 +36,7 @@ Production-oriented EMS with REST API (Node.js/Express/MySQL) and SPA frontend (
 - Core APIs:
   - `POST /api/v1/auth/register`
   - `POST /api/v1/auth/login`
+  - `POST /api/v1/employees` (admin create)
   - `GET /api/v1/employees?page=&limit=&search=&sortBy=&sortOrder=`
   - `PUT /api/v1/employees/:id` (transactional/atomic)
   - `GET /api/v1/dashboard/stats`
@@ -58,14 +59,18 @@ Production-oriented EMS with REST API (Node.js/Express/MySQL) and SPA frontend (
 ## Setup
 
 1. Backend
-   - Copy `server/.env.example` to `server/.env`
-   - Set MySQL `DATABASE_URL` and JWT secrets
+  - Copy `server/.env.example` to `server/.env`
+  - Set MySQL `DATABASE_URL`, `CLIENT_ORIGIN`, and JWT secrets
+  - `CLIENT_ORIGIN`:
+    - `https://arunkumar-git-main-arunkumar3624s-projects.vercel.app`
    - Run:
      - `cd server`
      - `npm install`
      - `npm run dev`
 2. Frontend
-   - Copy `client/.env.example` to `client/.env`
+  - Copy `client/.env.example` to `client/.env`
+  - Set `VITE_API_BASE_URL`:
+    - `https://p2-e3ci.onrender.com/api/v1`
    - Run:
      - `cd client`
      - `npm install`

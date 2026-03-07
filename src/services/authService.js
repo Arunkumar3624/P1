@@ -1,8 +1,10 @@
 import api from "./api";
 
+const unwrap = (response) => response?.data;
+
 export const authService = {
-  login: (payload) => api.post("/auth/login", payload).then((res) => res.data),
-  register: (payload) => api.post("/auth/register", payload).then((res) => res.data),
-  me: () => api.get("/auth/me").then((res) => res.data),
-  logout: () => api.post("/auth/logout").then((res) => res.data)
+  login: async (payload) => unwrap(await api.post("/login", payload)),
+  register: async (payload) => unwrap(await api.post("/register", payload)),
+  me: async () => unwrap(await api.get("/me")),
+  logout: async () => unwrap(await api.post("/logout")),
 };

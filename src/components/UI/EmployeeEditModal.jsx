@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 export default function EmployeeEditModal({
+  isOpen,
+  mode = "edit",
   employee,
   departments,
   onClose,
@@ -16,27 +18,27 @@ export default function EmployeeEditModal({
   } = useForm();
 
   useEffect(() => {
-    if (employee) {
-      reset({
-        firstName: employee.firstName,
-        lastName: employee.lastName,
-        email: employee.email,
-        phone: employee.phone,
-        departmentId: employee.departmentId,
-        designation: employee.designation,
-        salary: employee.salary,
-        status: employee.status,
-        joiningDate: employee.joiningDate
-      });
-    }
-  }, [employee, reset]);
+    reset({
+      firstName: employee?.firstName || "",
+      lastName: employee?.lastName || "",
+      email: employee?.email || "",
+      phone: employee?.phone || "",
+      departmentId: employee?.departmentId || departments?.[0]?.id || "",
+      designation: employee?.designation || "",
+      salary: employee?.salary || "",
+      status: employee?.status || "Active",
+      joiningDate: employee?.joiningDate || ""
+    });
+  }, [employee, departments, reset]);
 
-  if (!employee) return null;
+  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-40 grid place-items-center bg-slate-900/40 p-4">
       <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-panel">
-        <h3 className="mb-4 font-display text-xl font-semibold text-navy">Edit Employee</h3>
+        <h3 className="mb-4 font-display text-xl font-semibold text-navy">
+          {mode === "create" ? "Add Employee" : "Edit Employee"}
+        </h3>
         <form onSubmit={handleSubmit(onSave)} className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="First Name" {...register("firstName", { required: true })} />
           <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Last Name" {...register("lastName", { required: true })} />
@@ -67,7 +69,11 @@ export default function EmployeeEditModal({
               Cancel
             </button>
             <button type="submit" disabled={saving} className="rounded-lg bg-actionBlue px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
-              {saving ? "Saving..." : "Save Changes"}
+              {saving
+                ? "Saving..."
+                : mode === "create"
+                  ? "Add Employee"
+                  : "Save Changes"}
             </button>
           </div>
         </form>

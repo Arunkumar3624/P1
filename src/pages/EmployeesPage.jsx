@@ -25,6 +25,7 @@ export default function EmployeesPage() {
   const [error, setError] = useState("");
   const [departments, setDepartments] = useState([]);
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const debouncedSearch = useDebounce(search, 400);
@@ -100,6 +101,19 @@ export default function EmployeesPage() {
     }
   };
 
+  const handleCreate = async (payload) => {
+    try {
+      setSaving(true);
+      await employeeService.createEmployee(payload);
+      setIsAddModalOpen(false);
+      await loadEmployees(1);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-panel">
@@ -108,6 +122,15 @@ export default function EmployeesPage() {
           <p className="text-sm text-slate-500">{meta.total} records</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(true)}
+              className="rounded-lg bg-actionBlue px-3 py-2 text-sm font-semibold text-white"
+            >
+              Add Employee
+            </button>
+          )}
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -217,6 +240,18 @@ export default function EmployeesPage() {
       )}
 
       <EmployeeEditModal
+        isOpen={isAddModalOpen}
+        mode="create"
+        employee={null}
+        departments={departments}
+        saving={saving}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={handleCreate}
+      />
+
+      <EmployeeEditModal
+        isOpen={Boolean(selectedEmployee)}
+        mode="edit"
         employee={selectedEmployee}
         departments={departments}
         saving={saving}

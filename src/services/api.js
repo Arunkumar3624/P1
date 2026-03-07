@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api/v1",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "https://p2-e3ci.onrender.com/api/v1",
   withCredentials: true,
   timeout: 15000
 });
@@ -9,12 +9,11 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message =
+    error.message =
       error?.response?.data?.message ||
       error?.message ||
       "Unexpected network error. Please try again.";
-
-    return Promise.reject(new Error(message));
+    return Promise.reject(error);
   }
 );
 
