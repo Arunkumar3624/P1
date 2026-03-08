@@ -27,10 +27,15 @@ export default function EmployeesPage() {
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState("");
+  const [departmentName, setDepartmentName] = useState("");
+  const [editingDepartmentId, setEditingDepartmentId] = useState("");
+  const [departmentSaving, setDepartmentSaving] = useState(false);
+  const [departmentDeletingId, setDepartmentDeletingId] = useState("");
 
   const debouncedSearch = useDebounce(search, 400);
   const [sortBy, sortOrder] = useMemo(() => sort.split(":"), [sort]);
-  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const canManageEmployees = Boolean(user);
 
   const loadEmployees = async (page = 1) => {
     try {
@@ -75,13 +80,23 @@ export default function EmployeesPage() {
   };
 
   const handleDelete = async (id) => {
+    setError("");
+    setDeletingId(id);
     const previous = employees;
     setEmployees((curr) => curr.filter((employee) => employee.id !== id));
     try {
       await employeeService.deleteEmployee(id);
+      const nextCount = previous.length - 1;
+      if (nextCount <= 0 && meta.page > 1) {
+        await loadEmployees(meta.page - 1);
+      } else {
+        await loadEmployees(meta.page);
+      }
     } catch (err) {
       setEmployees(previous);
       setError(err.message);
+    } finally {
+      setDeletingId("");
     }
   };
 
@@ -89,6 +104,7 @@ export default function EmployeesPage() {
     if (!selectedEmployee) return;
     try {
       setSaving(true);
+      setError("");
       const response = await employeeService.updateEmployee(selectedEmployee.id, payload);
       setEmployees((curr) =>
         curr.map((item) => (item.id === selectedEmployee.id ? response.data : item))
@@ -104,6 +120,7 @@ export default function EmployeesPage() {
   const handleCreate = async (payload) => {
     try {
       setSaving(true);
+      setError("");
       await employeeService.createEmployee(payload);
       setIsAddModalOpen(false);
       await loadEmployees(1);
@@ -111,6 +128,59 @@ export default function EmployeesPage() {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const resetDepartmentForm = () => {
+    setDepartmentName("");
+    setEditingDepartmentId("");
+  };
+
+  const handleDepartmentSubmit = async () => {
+    const normalizedName = departmentName.trim();
+    if (!normalizedName) {
+      setError("Department name is required.");
+      return;
+    }
+
+    try {
+      setDepartmentSaving(true);
+      setError("");
+      if (editingDepartmentId) {
+        await departmentService.updateDepartment(editingDepartmentId, {
+          name: normalizedName,
+        });
+      } else {
+        await departmentService.createDepartment({ name: normalizedName });
+      }
+      await loadDepartments();
+      resetDepartmentForm();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDepartmentSaving(false);
+    }
+  };
+
+  const handleDepartmentEdit = (department) => {
+    setEditingDepartmentId(department.id);
+    setDepartmentName(department.name);
+    setError("");
+  };
+
+  const handleDepartmentDelete = async (id) => {
+    try {
+      setDepartmentDeletingId(id);
+      setError("");
+      await departmentService.deleteDepartment(id);
+      if (editingDepartmentId === id) {
+        resetDepartmentForm();
+      }
+      await loadDepartments();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDepartmentDeletingId("");
     }
   };
 
@@ -122,10 +192,13 @@ export default function EmployeesPage() {
           <p className="text-sm text-slate-500">{meta.total} records</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {isAdmin && (
+          {canManageEmployees && (
             <button
               type="button"
-              onClick={() => setIsAddModalOpen(true)}
+              onClick={() => {
+                setError("");
+                setIsAddModalOpen(true);
+              }}
               className="rounded-lg bg-actionBlue px-3 py-2 text-sm font-semibold text-white"
             >
               Add Employee
@@ -152,6 +225,67 @@ export default function EmployeesPage() {
       </div>
 
       {error && <p className="rounded-lg bg-rose-100 p-3 text-sm text-rose-700">{error}</p>}
+
+      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-panel">
+        <h3 className="font-display text-base font-semibold text-navy">Manage Departments</h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Create departments here, then use them while adding employees.
+        </p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <input
+            value={departmentName}
+            onChange={(e) => setDepartmentName(e.target.value)}
+            placeholder="Department name"
+            className="w-72 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          />
+          <button
+            type="button"
+            onClick={handleDepartmentSubmit}
+            disabled={departmentSaving}
+            className="rounded-lg bg-actionBlue px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          >
+            {departmentSaving
+              ? "Saving..."
+              : editingDepartmentId
+                ? "Update Department"
+                : "Add Department"}
+          </button>
+          {editingDepartmentId && (
+            <button
+              type="button"
+              onClick={resetDepartmentForm}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            >
+              Cancel Edit
+            </button>
+          )}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {departments.map((department) => (
+            <div
+              key={department.id}
+              className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+            >
+              <span className="text-sm font-medium text-slate-700">{department.name}</span>
+              <button
+                type="button"
+                onClick={() => handleDepartmentEdit(department)}
+                className="rounded-md bg-actionBlue px-2 py-1 text-xs font-semibold text-white"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDepartmentDelete(department.id)}
+                disabled={departmentDeletingId === department.id}
+                className="rounded-md bg-rose-500 px-2 py-1 text-xs font-semibold text-white disabled:opacity-60"
+              >
+                {departmentDeletingId === department.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {loading ? (
         <TableSkeleton rows={8} />
@@ -189,7 +323,7 @@ export default function EmployeesPage() {
                       <StatusBadge status={employee.status} />
                     </td>
                     <td className="px-4 py-3">
-                      {isAdmin ? (
+                      {canManageEmployees ? (
                         <div className="flex gap-2">
                           <button
                             type="button"
@@ -201,9 +335,10 @@ export default function EmployeesPage() {
                           <button
                             type="button"
                             onClick={() => handleDelete(employee.id)}
-                            className="rounded-md bg-rose-500 px-3 py-1 text-xs font-semibold text-white"
+                            disabled={deletingId === employee.id}
+                            className="rounded-md bg-rose-500 px-3 py-1 text-xs font-semibold text-white disabled:opacity-60"
                           >
-                            Delete
+                            {deletingId === employee.id ? "Deleting..." : "Delete"}
                           </button>
                         </div>
                       ) : (
@@ -247,6 +382,7 @@ export default function EmployeesPage() {
         saving={saving}
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleCreate}
+        errorMessage={error}
       />
 
       <EmployeeEditModal
@@ -257,6 +393,7 @@ export default function EmployeesPage() {
         saving={saving}
         onClose={() => setSelectedEmployee(null)}
         onSave={handleSave}
+        errorMessage={error}
       />
     </section>
   );

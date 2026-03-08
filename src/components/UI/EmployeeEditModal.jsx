@@ -1,6 +1,14 @@
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
+const formatDateInput = (value) => {
+  if (!value) return "";
+  if (typeof value === "string" && value.length >= 10) return value.slice(0, 10);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toISOString().slice(0, 10);
+};
+
 export default function EmployeeEditModal({
   isOpen,
   mode = "edit",
@@ -8,7 +16,8 @@ export default function EmployeeEditModal({
   departments,
   onClose,
   onSave,
-  saving
+  saving,
+  errorMessage = "",
 }) {
   const {
     register,
@@ -27,9 +36,24 @@ export default function EmployeeEditModal({
       designation: employee?.designation || "",
       salary: employee?.salary || "",
       status: employee?.status || "Active",
-      joiningDate: employee?.joiningDate || ""
+      joiningDate: formatDateInput(employee?.joiningDate),
     });
   }, [employee, departments, reset]);
+
+  const submitHandler = (values) => {
+    const payload = {
+      firstName: values.firstName.trim(),
+      lastName: values.lastName.trim(),
+      email: values.email.trim().toLowerCase(),
+      phone: values.phone.trim(),
+      departmentId: values.departmentId,
+      designation: values.designation.trim(),
+      salary: Number(values.salary),
+      status: values.status,
+      joiningDate: values.joiningDate,
+    };
+    onSave(payload);
+  };
 
   if (!isOpen) return null;
 
@@ -39,7 +63,7 @@ export default function EmployeeEditModal({
         <h3 className="mb-4 font-display text-xl font-semibold text-navy">
           {mode === "create" ? "Add Employee" : "Edit Employee"}
         </h3>
-        <form onSubmit={handleSubmit(onSave)} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <form onSubmit={handleSubmit(submitHandler)} className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="First Name" {...register("firstName", { required: true })} />
           <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm" placeholder="Last Name" {...register("lastName", { required: true })} />
           <input className="rounded-lg border border-slate-300 px-3 py-2 text-sm md:col-span-2" placeholder="Email" {...register("email", { required: true })} />
@@ -63,12 +87,16 @@ export default function EmployeeEditModal({
             {(errors.firstName || errors.lastName || errors.email) && (
               <p className="text-sm text-rose-600">Please complete required fields.</p>
             )}
+            {!departments.length && (
+              <p className="text-sm text-rose-600">Create a department first before adding employees.</p>
+            )}
+            {errorMessage && <p className="text-sm text-rose-600">{errorMessage}</p>}
           </div>
           <div className="flex justify-end gap-3 md:col-span-2">
             <button type="button" className="rounded-lg border border-slate-300 px-4 py-2 text-sm" onClick={onClose}>
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="rounded-lg bg-actionBlue px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
+            <button type="submit" disabled={saving || !departments.length} className="rounded-lg bg-actionBlue px-4 py-2 text-sm font-semibold text-white disabled:opacity-60">
               {saving
                 ? "Saving..."
                 : mode === "create"
