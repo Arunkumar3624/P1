@@ -1,9 +1,15 @@
 import axios from "axios";
 
 const fallbackBaseURL = "https://p2-e3ci.onrender.com/api/v1";
+const envBaseURL = String(import.meta.env.VITE_API_BASE_URL || "").trim();
+const isLocalApi = /localhost|127\.0\.0\.1/i.test(envBaseURL);
+const resolvedBaseURL =
+  import.meta.env.PROD && isLocalApi
+    ? fallbackBaseURL
+    : envBaseURL || fallbackBaseURL;
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || fallbackBaseURL,
+  baseURL: resolvedBaseURL,
   withCredentials: true,
   timeout: 15000,
 });
